@@ -1,40 +1,35 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Video
 
-router = APIRouter(prefix="/videos")
+router = APIRouter(prefix="/videos", tags=["Videos"])
 
-@router.post("/")
-def create_video(video_id: str, headline: str):
-
+def get_db():
     db = SessionLocal()
-
-    video = Video(video_id=video_id, headline=headline)
-
-    db.add(video)
-    db.commit()
-
-    return video
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @router.get("/")
-def get_videos():
-
-    db = SessionLocal()
-
+def get_videos(db: Session = Depends(get_db)):
     return db.query(Video).all()
 
 
-@router.delete("/{video_id}")
-def delete_video(video_id: str):
-
-    db = SessionLocal()
-
-    video = db.query(Video).filter(Video.video_id == video_id).first()
-
-    db.delete(video)
-
+@router.post("/")
+def create_video(video_id: str, headline: str, db: Session = Depends(get_db)):
+    video = Video(video_id=video_id, headline=headline)
+    db.add(video)
     db.commit()
+    db.refresh(video)
+    return video
 
-    return {"message": "deleted"}
+
+@router.delete("/{video_id}")
+def delete_video(video_id: str, db: Session = Depends(get_db)):
+    video = db.query(Video).filter(Video.video_id == video_id).first()
+    db.delete(video)
+    db.commit()
+    return {"message": "video deleted"}
