@@ -1,23 +1,18 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.database import SessionLocal
-from app.models import Video
+from fastapi import APIRouter
+from app.services.db_queries import get_data
 
 router = APIRouter(prefix="/videos", tags=["Videos"])
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
+@router.get("/db_queries")
+def db_queries():
 
-@router.get("/")
-def get_videos(db: Session = Depends(get_db)):
-    return db.query(Video).all()
+    result = get_data(
+        columns=["Reels", "Channel"],
+        limit=100
+    )
 
-
+    return result
 @router.post("/")
 def create_video(video_id: str, headline: str, db: Session = Depends(get_db)):
     video = Video(video_id=video_id, headline=headline)
